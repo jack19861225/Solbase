@@ -16,6 +16,8 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.HColumnDescriptor;
 import org.apache.hadoop.hbase.HTableDescriptor;
+import org.apache.hadoop.hbase.MasterNotRunningException;
+import org.apache.hadoop.hbase.ZooKeeperConnectionException;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.hadoop.hbase.client.HTable;
@@ -499,6 +501,17 @@ public final class SolbaseUtil {
 		column.setMaxVersions(1);
 	}
 	
+	public static void createTermVectorTable(byte[][] splits) throws IOException{
+		HTableDescriptor desc = new HTableDescriptor(SolbaseUtil.getTermVectorTableName());
+		HColumnDescriptor column = new HColumnDescriptor(SolbaseUtil.termVectorDocColumnFamilyName);
+		SolbaseUtil.setupHColumnDescriptor(column);
+		desc.addFamily(column);
+		
+		HBaseAdmin admin;
+		admin = new HBaseAdmin(SolbaseUtil.conf);
+		admin.createTable(desc, splits);
+	}
+	
 	public static void createTermVectorTable(byte[] startTerm, byte[] endTerm, Integer numberOfRegions) throws IOException {
 		HTableDescriptor desc = new HTableDescriptor(SolbaseUtil.getTermVectorTableName());
 		HColumnDescriptor column = new HColumnDescriptor(SolbaseUtil.termVectorDocColumnFamilyName);
@@ -539,6 +552,25 @@ public final class SolbaseUtil {
 		
 		SolbaseUtil.createTable(desc, start, end, numberOfRegions);	
 	}
+	
+	public static void createDocTable(byte[][] splits) throws IOException{
+		HTableDescriptor desc = new HTableDescriptor(SolbaseUtil.getDocTableName());
+		HColumnDescriptor fieldColumn = new HColumnDescriptor(SolbaseUtil.fieldColumnFamilyName);
+		SolbaseUtil.setupHColumnDescriptor(fieldColumn);
+		desc.addFamily(fieldColumn);
+		
+		HColumnDescriptor allTermsColumn = new HColumnDescriptor(SolbaseUtil.allTermsColumnFamilyName);
+		SolbaseUtil.setupHColumnDescriptor(allTermsColumn);
+		desc.addFamily(allTermsColumn);
+		
+		HColumnDescriptor timestampColumn = new HColumnDescriptor(SolbaseUtil.timestampColumnFamilyName);
+		SolbaseUtil.setupHColumnDescriptor(timestampColumn);
+		desc.addFamily(timestampColumn);
+		
+		HBaseAdmin admin;
+		admin = new HBaseAdmin(SolbaseUtil.conf);
+		admin.createTable(desc, splits);
+	}
 
 	public static void createSequenceTable() throws IOException {
 		HTableDescriptor desc = new HTableDescriptor(SolbaseUtil.getSequenceTableName());
@@ -556,6 +588,16 @@ public final class SolbaseUtil {
 		SolbaseUtil.createTable(desc, start, end, numberOfRegions);
 	}
 	
+	public static void truncateTable(HBaseAdmin admin, byte[] tableName){
+		try {
+			HTableDescriptor desc = admin.getTableDescriptor(tableName);
+			admin.disableTable(tableName);
+			admin.deleteTable(tableName);
+			admin.createTable(desc);
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
+	}
 	public static byte[] randomize(Integer docId){
 		byte[] bytes = Bytes.toBytes(docId);
 		ArrayUtils.reverse(bytes);
@@ -565,102 +607,5 @@ public final class SolbaseUtil {
 	public static byte[] randomize(byte[] docId){
 		ArrayUtils.reverse(docId);
 		return docId;
-	}
-
-	public static void main(String[] args){
-		try {
-			@SuppressWarnings("deprecation")
-			HBaseConfiguration conf = new HBaseConfiguration();
-			conf.set("hbase.zookeeper.quorum", "den3dhdptk01");
-			conf.set("hbase.zookeeper.property.clientPort", "2181");
-			conf.setInt("hbase.client.retries.number", 7);
-			conf.setInt("ipc.client.connect.max.retries", 3);
-
-			int docNumber = -1;
-			
-			HTableInterface htable = hTablePool.getTable("DocKeyIdMap_activity");
-
-			long totalTime = 0;
-			long totalTerms = 0;
-			// using seperate connector to leverage different http thread
-			// pool for updates
-			CommonsHttpSolrServer solbaseServer = new CommonsHttpSolrServer("http://den3devsch04:8080/solbase/activity~0");
-
-			long totalStart = System.currentTimeMillis();
-			int j = 0;
-			int k = 0;
-			
-			for(; k < 100; k++){
-				String globalId = "target:id:" + k;
-
-				SolrInputDocument doc = new SolrInputDocument();
-				
-				try {
-					Get docIdGet = new Get(Bytes.toBytes(globalId));
-					Result result = htable.get(docIdGet);
-
-					if (result != null && !result.isEmpty()) {
-						byte[] docIdBytes = result.getValue(Bytes.toBytes("docId"), Bytes.toBytes(""));
-						docNumber = Bytes.toInt(docIdBytes);
-						doc.addField("edit", true);
-					} else {
-						HTableInterface sequence = hTablePool.getTable("Sequence_activity");
-
-						try {
-							docNumber = new Long(sequence.incrementColumnValue(Bytes.toBytes("sequence"), Bytes.toBytes("id"), Bytes.toBytes(""), 1, true)).intValue();
-						} catch (IOException e) {
-							e.printStackTrace();
-						} finally {
-							hTablePool.putTable(sequence);
-						}
-					}
-				} catch (IOException e) {
-					e.printStackTrace();
-				} finally {
-					hTablePool.putTable(htable);
-				}
-
-				doc.addField("docId", docNumber);
-				doc.addField("global_uniq_id", globalId);
-				doc.addField("updateStore", true);
-
-				// time
-				long start = System.currentTimeMillis();
-
-				String targetIds = "";
-				
-				int randomNumTerms = (int) (50 * Math.random());
-				randomNumTerms = 100;
-				totalTerms += randomNumTerms;
-				
-				for (j=0; j < randomNumTerms; j++) {
-					targetIds += " " + j;
-				}
-				doc.addField("targetIds", targetIds);
-				doc.addField("lastModified", new Integer(SolbaseUtil.getEpochSinceSolbase((System.currentTimeMillis() - k*60000) / 60000)).toString());
-
-				solbaseServer.add(doc);
-
-				doc.removeField("targetIds");
-				doc.removeField("lastModified");
-
-				long elapsed = System.currentTimeMillis() - start;
-
-				System.out.println("time to update " + j + " terms: " + elapsed);
-
-				totalTime += elapsed;
-			}
-			
-			System.out.println("average time to update " + totalTerms/k + " terms: " + totalTime/k);
-			System.out.println("updated: " + k + " docs in " + (System.currentTimeMillis() - totalStart));
-		} catch (MalformedURLException e) {
-
-		} catch (SolrServerException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
 	}
 }

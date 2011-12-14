@@ -59,6 +59,9 @@ public class SolbaseIndexerTool implements Tool{
 		if(this.conf == null){
 			this.conf = new Configuration();
 		}
+		
+		String tableName = arg0[1];
+		
 		// for debugging, this will run local
 		// in 0.90, this only works for mapping phase, after that, it tries to copy blocks to reduce and never finishes that phase
 		//conf.set("mapred.job.tracker", "local");
@@ -66,23 +69,7 @@ public class SolbaseIndexerTool implements Tool{
 		// set up tables ahead of MR job
 		setupTables();
 		
-		// single regions
-		Scan scan = new Scan();
-		
-		FilterList filters = new FilterList();
-		// fetch public pictures only
-		SingleColumnValueFilter publicFilter = new SingleColumnValueFilter(Bytes.toBytes("meta"), Bytes.toBytes("public"), CompareFilter.CompareOp.EQUAL, Bytes.toBytes("1"));
-		// fetch non tombstoned only
-		SingleColumnValueFilter tombstoneFilter = new SingleColumnValueFilter(Bytes.toBytes("meta"), Bytes.toBytes("tombstoned"), CompareFilter.CompareOp.EQUAL, Bytes.toBytes("0"));
-	    filters.addFilter(publicFilter);
-	    filters.addFilter(tombstoneFilter);
-		scan.setFilter(filters);
-	
-		scan.addFamily(Bytes.toBytes("meta"));
-		scan.addFamily(Bytes.toBytes("tags"));
-	    scan.addFamily(Bytes.toBytes("stats"));
-	    scan.setBatch(1000);
-	    scan.setCaching(1000);
+		Scan scan = indexerUtil.getScanner();
 	    
 	    // tablemapreduceutil way of doing it
 	    Job job = new Job(conf);
@@ -92,7 +79,7 @@ public class SolbaseIndexerTool implements Tool{
 	    job.getConfiguration().set("indexerUtil", indexerUtil.getClass().getName());
 	    
 		job.setJarByClass(org.solbase.indexer.mapreduce.SolbaseInitialIndexMapper.class);
-		TableMapReduceUtil.initTableMapperJob("user_media", scan, org.solbase.indexer.mapreduce.SolbaseInitialIndexMapper.class, BytesWritable.class, MapWritable.class, job);
+		TableMapReduceUtil.initTableMapperJob(tableName, scan, org.solbase.indexer.mapreduce.SolbaseInitialIndexMapper.class, BytesWritable.class, MapWritable.class, job);
 
 	    job.setJarByClass(org.solbase.indexer.mapreduce.SolbaseIndexReducer.class);
 	    job.setJarByClass(org.solbase.lucenehbase.TermDocMetadata.class);
@@ -121,62 +108,35 @@ public class SolbaseIndexerTool implements Tool{
 			Configuration conf = HBaseConfiguration.create();
 			admin = new HBaseAdmin(conf);
 
-			// TODO: implement pre split - key distribution logic
 			if (!admin.isTableAvailable(SolbaseUtil.termVectorTable)) {				
-				/*
-				String startTerm = indexerUtil.getStartTerm();
-				String endTerm = indexerUtil.getEndTerm();
-
-				if(startTerm != null && endTerm != null){
-					byte[] start = SolbaseUtil.generateTermBeginKey(new Term(startTerm));
-					byte[] end = SolbaseUtil.generateTermEndKey(new Term(endTerm));
-					SolbaseUtil.createTermVectorTable(start, end, indexerUtil.getNumberOfTVRegions());
-				} else {
-				*/
-					SolbaseUtil.createTermVectorTable(null, null, null);
-				//}
+				SolbaseUtil.createTermVectorTable(null, null, null);
+			} else {
+				SolbaseUtil.truncateTable(admin, SolbaseUtil.termVectorTable);
 			}
 			if (!admin.isTableAvailable(SolbaseUtil.termVectorVersionIDTable)) {
 				SolbaseUtil.createTermVectorVersionIDTable();
+			} else {
+				SolbaseUtil.truncateTable(admin, SolbaseUtil.termVectorVersionIDTable);
 			}
 			if (!admin.isTableAvailable(SolbaseUtil.docKeyIdMapTable)) {
-				/*
-				byte[] start = indexerUtil.getStartDocKey();
-				byte[] end = indexerUtil.getEndDocKey();
-
-				if (start != null && end != null) {
-					SolbaseUtil.createDocKeyIdMapTable(start, end, indexerUtil.getNumberOfDocKeyRegions());
-				} else {
-				 */
-					SolbaseUtil.createDocKeyIdMapTable(null, null, null);	
-				//}
+				SolbaseUtil.createDocKeyIdMapTable(null, null, null);
+			} else {
+				SolbaseUtil.truncateTable(admin, SolbaseUtil.docKeyIdMapTable);
 			}
 			if (!admin.isTableAvailable(SolbaseUtil.docTable)) {
-				/*
-				Integer maxDocs = indexerUtil.getMaxDocs();
-				if (maxDocs != null) {
-					int regions = indexerUtil.getNumberOfDocRegions();
-					int perRegion = maxDocs / regions;
-					SolbaseUtil.createDocTable(Bytes.toBytes(perRegion), Bytes.toBytes(perRegion*(regions-1)), regions);
-				} else {
-					*/
-					SolbaseUtil.createDocTable(null, null, null);
-				//}
+				SolbaseUtil.createDocTable(null, null, null);
+			} else {
+				SolbaseUtil.truncateTable(admin, SolbaseUtil.docTable);
 			}
 			if (!admin.isTableAvailable(SolbaseUtil.sequenceTable)) {
 				SolbaseUtil.createSequenceTable();
+			} else {
+				SolbaseUtil.truncateTable(admin, SolbaseUtil.sequenceTable);
 			}
 			if (!admin.isTableAvailable(SolbaseUtil.uniqChecksumUserMediaTable)) {
-				/*
-				String startUniqKey = indexerUtil.getUniqStartKey();
-				String endUniqKey = indexerUtil.getUniqEndKey();
-
-				if (startUniqKey != null && endUniqKey != null) {
-					SolbaseUtil.createUniqChecksumUserMediaTable(Bytes.toBytes(startUniqKey), Bytes.toBytes(endUniqKey), indexerUtil.getNumberOfUniqRegions());
-				} else {
-					*/
-					SolbaseUtil.createUniqChecksumUserMediaTable(null, null, null);
-				//}
+				SolbaseUtil.createUniqChecksumUserMediaTable(null, null, null);
+			} else {
+				SolbaseUtil.truncateTable(admin, SolbaseUtil.uniqChecksumUserMediaTable);
 			}
 		} catch (MasterNotRunningException e) {
 			e.printStackTrace();

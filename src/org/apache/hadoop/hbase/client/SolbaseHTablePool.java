@@ -53,7 +53,7 @@ public class SolbaseHTablePool extends HTablePool {
 			busyTables.putIfAbsent(tableName, busyQueue);
 		}
 		
-		if (idleQueue == null) {
+		if (idleQueue == null || htablecounter == null) {
 			logger.info("creating new idle queue for table: " + tableName);
 			
 			// lazy initialization of this pool

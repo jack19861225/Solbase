@@ -3,7 +3,7 @@ package org.solbase.indexer;
 import java.util.List;
 
 import org.apache.hadoop.hbase.client.Result;
-import org.apache.hadoop.hbase.io.ImmutableBytesWritable;
+import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.mapreduce.Mapper.Context;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.document.Document;
@@ -31,6 +31,15 @@ abstract public class SolbaseIndexUtil {
 	public void addFieldToDoc(Document document, String fieldId, String val){
 		Field docIdField = new Field(fieldId, val, Field.Store.YES, Field.Index.NO);
 		document.add(docIdField);
+	}
+	
+	public Scan getScanner(){
+		// override this method 
+		Scan scan = new Scan();
+	    scan.setBatch(1000);
+	    scan.setCaching(1000);
+	    
+		return scan;
 	}
 	
 	public String getStartTerm() {
