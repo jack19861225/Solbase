@@ -1,0 +1,17 @@
+    <context-param>
+        <!-- absolute path to log4j config file (*.properties or *.xml) -->
+        <param-name>LOG4J_CONFIG_LOCATION</param-name>
+        <param-value>
+            /usr/share/tomcat5/shared/classes/log4j.xml
+        </param-value>
+    </context-param>
+    <context-param>
+        <!-- number of milliseconds to wait before checking LOG4J_CONFIG_LOCATION for updates -->
+        <param-name>LOG4J_REFRESH_INTERVAL</param-name>
+        <param-value>60000</param-value>
+    </context-param>
+    <listener>
+        <listener-class>
+            com.pb.common.Log4jConfigListener
+        </listener-class>
+    </listener>

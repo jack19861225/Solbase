@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<config>
+  <requestDispatcher handleSelect="true"/>
+  
+  <requestHandler name="photobucket" class="com.pb.handler.PhotobucketSearchHandler" default="true" >
+    <lst name="defaults">
+        <int name="rows">20</int>
+        <str name="q.op">AND</str>
+        <str name="shards">den2sch09:8080/solr/images,den2sch10:8080/solr/images,den2sch11:8080/solr/images,den2sch12:8080/solr/images,den2sch13:8080/solr/images,den2sch14:8080/solr/images</str>
+        <str name="baseshards">den2sch09:8080/solr/,den2sch10:8080/solr/,den2sch11:8080/solr/,den2sch12:8080/solr/,den2sch13:8080/solr/,den2sch14:8080/solr/</str>
+    </lst>
+  </requestHandler>
+
+  <requestHandler name="standard" class="solr.StandardRequestHandler" />
+  <requestHandler name="/admin/" class="org.apache.solr.handler.admin.AdminHandlers" />
+      
+  <queryResponseWriter name="pbxml" class="com.pb.response.PBXMLResponseWriter" default="true"/>
+  <queryResponseWriter name="xml" class="org.apache.solr.request.XMLResponseWriter" />
+  <!-- config for the admin interface --> 
+  <admin>
+    <defaultQuery>solr</defaultQuery>
+  </admin>
+  
+  <query>
+    <queryResultCache
+    class="solr.LRUCache"
+    size="1048576"
+    initialSize="1048576"
+    autowarm="0"
+    /> 
+  </query>
+  <query>
+    <documentCache
+    class="solr.LRUCache"
+    size="1048576"
+    initialSize="1048576"
+    autowarm="0"
+    /> 
+  </query>
+
+</config>
+

@@ -1,0 +1,7 @@
+<listener event="firstSearcher" class="org.apache.solr.core.SolbaseQuerySenderListener">
+<arr name="queries">
+<lst><str name="sort">score desc, lastModified desc</str><str name="rows">1</str><str name="q">car</str><str name="qf">contents</str><str name="isShard">true</str><str name="wt">xml</str></lst>
+<lst><str name="sort">score desc, lastModified desc</str><str name="rows">1</str><str name="q">rare</str><str name="qf">contents</str><str name="isShard">true</str><str name="wt">xml</str></lst>
+</arr>
+</listener>
+

@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<config>
+  <requestDispatcher handleSelect="true"/>
+  
+  <requestHandler name="standard" class="solr.StandardRequestHandler" default="true"/>
+  <requestHandler name="dismax" class="solr.DisMaxRequestHandler"/>
+  <requestHandler name="/admin/" class="org.apache.solr.handler.admin.AdminHandlers" />
+      
+  <queryResponseWriter name="pbxml" class="com.pb.response.PBXMLResponseWriter" default="true"/>
+  <queryResponseWriter name="xml" class="org.apache.solr.request.XMLResponseWriter" />
+  <queryResponseWriter name="binary" class="org.apache.solr.request.BinaryResponseWriter" />
+
+  <queryParser name="lucene" class="org.apache.solr.search.LuceneQParserPlugin"/>
+  <!-- config for the admin interface --> 
+  <admin>
+    <defaultQuery>solr</defaultQuery>
+  </admin>
+
+</config>
+

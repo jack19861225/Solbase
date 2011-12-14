@@ -1,0 +1,12 @@
+#db.postfix=activity
+db.postfix=
+memcache.hostname=localhost
+memcache.port=11211
+storage.type=KEY_ONLY
+shard.hosts=localhost,localhost
+class.solbaseIndexUtil=com.pb.solbase.PBIndexUtil
+#class.solbaseIndexUtil=com.pb.solbase.ActivityStreamIndexUtil
+#shard.hosts=den3devsch01,den3devsch02,den3devsch03,den3devsch04,den3devsch01,den3devsch02,den3devsch03,den3devsch04
+#shard.hosts=den3devsch01,den3devsch02,den3devsch03,den3devsch04
+#shard.hosts=den3devhdp01,den3devhdp02,den3devhdp03,den3devhdp04,den3devhdp05,den3devhdp06,den3devhdp07,den3devhdp08,den3devhdp09,den3devhdp10,den3devsch01,den3devsch02,den3devsch03,den3devsch04
+

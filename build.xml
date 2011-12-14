@@ -1,0 +1,126 @@
+<!--
+ ~ Licensed to the Apache Software Foundation (ASF) under one
+ ~ or more contributor license agreements.  See the NOTICE file
+ ~ distributed with this work for additional information
+ ~ regarding copyright ownership.  The ASF licenses this file
+ ~ to you under the Apache License, Version 2.0 (the
+ ~ "License"); you may not use this file except in compliance
+ ~ with the License.  You may obtain a copy of the License at
+ ~
+ ~    http://www.apache.org/licenses/LICENSE-2.0
+ ~
+ ~ Unless required by applicable law or agreed to in writing,
+ ~ software distributed under the License is distributed on an
+ ~ "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ ~ KIND, either express or implied.  See the License for the
+ ~ specific language governing permissions and limitations
+ ~ under the License.
+ -->
+<project name="solbase" default="compile" basedir="."
+         xmlns:ivy="antlib:org.apache.ivy.ant">
+
+        <description>Solbase</description>
+
+        <property name="src"           location="src" />
+        <property name="config"        location="config" />
+        <property name="build"         location="build" />
+        <property name="build.classes" location="${build}/classes"/>
+        <property name="lib"           location="lib" />
+        <property name="hbase.base"    location="/opt/hbase/" />
+        <property name="hadoop.base"    location="/opt/hadoop/" />
+        <property name="zookeeper.base"    location="/opt/zookeeper/" />
+
+
+        <property name="resources" location="resources"/>
+
+        <!-- ivy properties -->
+
+        <target name="init">
+          <tstamp />
+          <mkdir dir="${build}" />
+          <mkdir dir="${build}/output" />
+          <mkdir dir="${build.classes}" />
+          <!--
+              Allow Ivy to be disabled with "-Dnoivy=".
+              It is kind of a hack to pretend that we already found it,
+              but Ant doesn't provide an easy way of blocking dependencies
+              from executing or checking multiple conditions.
+            -->
+          <condition property="ivy.found"><isset property="noivy" /></condition>
+          <condition property="offline"><isset property="noivy" /></condition>
+        </target>
+
+
+
+
+
+        <!-- ===========================  -->
+
+        <path id="solbase.classpath">
+          <pathelement location="${build.classes}"/>
+          <pathelement location="${resources}"/>
+          <fileset dir="${lib}">
+            <include name="**/*.jar" />
+          </fileset>
+          <fileset dir="${hbase.base}">
+            <include name="hbase-0.90.3-cdh3u1"/>
+          </fileset>
+          <fileset dir="${hadoop.base}">
+            <include name="hadoop-core-0.20.2-cdh3u1.jar"/>
+          </fileset>
+          <fileset dir="${zookeeper.base}">
+            <include name="zookeeper-3.3.3-cdh3u1.jar"/>
+          </fileset>
+        </path>
+
+
+        <target name="compile" depends="init">
+
+
+          <javac debug="true" destdir="${build.classes}">
+            <src path="${src}"/>
+            <classpath refid="solbase.classpath"/>
+          </javac>
+        </target>
+
+
+
+
+        <target name="solbase.jar" depends="compile">
+          <jar jarfile="solbase.jar" basedir="${build.classes}" />
+        </target>
+
+        <target name="clean">
+          <delete dir="${build}" />
+          <delete file="solbase.jar" />
+          <delete file="solbase.war" />
+        </target>
+
+        <!-- ============================= -->
+        <target name="war" depends="solbase.jar">
+          <war destfile="solbase.war"
+               webxml="WebContent/WEB-INF/web.xml">
+            <lib dir="${lib}">
+              <exclude name="servlet-api*.jar" />
+            </lib>
+            <lib dir="${hbase.base}">
+              <include name="hbase-0.90.3-cdh3u1"/>
+            </lib>
+            <lib dir="${hadoop.base}">
+              <include name="hadoop-core-0.20.2-cdh3u1.jar"/>
+            </lib>
+            <lib dir="${zookeeper.base}">
+              <include name="zookeeper-3.3.3-cdh3u1.jar"/>
+            </lib>
+	    <classes dir="${resources}">
+	      <include name="*.properties"/>
+	      <include name="*.cfg"/>
+	      <include name="hbase-site.xml"/>
+	      <include name="solrconfig.xml"/>
+	      <include name="schema.xml"/>
+	      <include name="*.txt"/>
+	    </classes>
+            <lib file="solbase.jar"/>
+          </war>
+        </target>
+</project>

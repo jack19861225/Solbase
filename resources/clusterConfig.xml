@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<config>
+    <!-- for testing -->
+    <cluster name="localhost">
+        <server hostname="localhost"/>
+        <server hostname="localhost"/>
+    </cluster>
+    <cluster name="den3devcls01">
+        <server hostname="den3devsch02"/>
+        <server hostname="den3devsch02"/>
+    </cluster>
+    <cluster name="den3devcls02">
+        <server hostname="den3devsch03"/>
+        <server hostname="den3devsch03"/>
+    </cluster>
+
+    <!--                            DEN3                                  -->
+    <cluster name="den3cls01">
+        <server hostname="den3sch31"/>
+        <server hostname="den3sch32"/>
+        <server hostname="den3sch33"/>
+        <server hostname="den3sch34"/>
+        <server hostname="den3sch31"/>
+        <server hostname="den3sch32"/>
+        <server hostname="den3sch33"/>
+        <server hostname="den3sch34"/>
+        <server hostname="den3sch31"/>
+        <server hostname="den3sch32"/>
+        <server hostname="den3sch33"/>
+        <server hostname="den3sch34"/>
+        <server hostname="den3sch31"/>
+        <server hostname="den3sch32"/>
+        <server hostname="den3sch33"/>
+        <server hostname="den3sch34"/>
+    </cluster>
+    <cluster name="den3cls02">
+        <server hostname="den3sch35"/>
+        <server hostname="den3sch36"/>
+        <server hostname="den3sch37"/>
+        <server hostname="den3sch38"/>
+        <server hostname="den3sch35"/>
+        <server hostname="den3sch36"/>
+        <server hostname="den3sch37"/>
+        <server hostname="den3sch38"/>
+        <server hostname="den3sch35"/>
+        <server hostname="den3sch36"/>
+        <server hostname="den3sch37"/>
+        <server hostname="den3sch38"/>
+        <server hostname="den3sch35"/>
+        <server hostname="den3sch36"/>
+        <server hostname="den3sch37"/>
+        <server hostname="den3sch38"/>
+    </cluster>
+</config>
