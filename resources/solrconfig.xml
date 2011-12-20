@@ -45,7 +45,6 @@
               <lib dir="./lib" />
     -->
 
-  <!--These are specific to Lucandra example -->
   <lib dir="../../" />
   <lib dir="../../lib" />
   <lib dir="../../config" />
