@@ -1,9 +1,0 @@
-<solr persistent="true" sharedLib="lib">
- <cores adminPath="/admin/cores">
- 	 <core name="images" instanceDir="images" />
- 	 <core name="videos" instanceDir="videos" />
- 	 <core name="groups" instanceDir="groups" />
- 	 <core name="themes" instanceDir="themes" />
- 	 <core name="mostlinked" instanceDir="mostlinked" />
- </cores>
-</solr>
