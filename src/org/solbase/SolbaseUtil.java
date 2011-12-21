@@ -105,6 +105,7 @@ public final class SolbaseUtil {
 	
 	public static final byte[] emptyColumnFamilyQualifierBytes = Bytes.toBytes("");
 	
+	public static final byte[] schemaInfoColumnFamilyName = Bytes.toBytes("info");	
 	
 	public static int   cacheInvalidationInterval = 1000;//ms
 	
@@ -499,6 +500,17 @@ public final class SolbaseUtil {
 		column.setCompressionType(Algorithm.SNAPPY);
 		column.setScope(1);
 		column.setMaxVersions(1);
+	}
+	
+	public static void createSITable() throws IOException {
+		HTableDescriptor desc = new HTableDescriptor(SolbaseUtil.schemaInfoTable);
+		HColumnDescriptor column = new HColumnDescriptor(SolbaseUtil.schemaInfoColumnFamilyName);
+		SolbaseUtil.setupHColumnDescriptor(column);
+		desc.addFamily(column);
+		
+		HBaseAdmin admin;
+		admin = new HBaseAdmin(SolbaseUtil.conf);
+		admin.createTable(desc);
 	}
 	
 	public static void createTermVectorTable(byte[][] splits) throws IOException{

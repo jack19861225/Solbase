@@ -18,8 +18,8 @@ import org.apache.solr.common.SolrInputDocument;
 
 public class CSVFileImporter {
 	public static void main(String[] args){
-		if(args.length < 2){
-			System.out.println("Usage: java example.CSVFileImporter <filename>");
+		if(args.length < 1){
+			System.out.println("Usage: java example.CSVFileImporter <csv filename>");
 			System.exit(0);
 		}
 		@SuppressWarnings("deprecation")
@@ -32,7 +32,7 @@ public class CSVFileImporter {
 		HTablePool hTablePool = new HTablePool(conf, 10);
 		
 		try {
-		    BufferedReader in = new BufferedReader(new FileReader(args[1]));
+		    BufferedReader in = new BufferedReader(new FileReader(args[0]));
 		    String str;
 		   
 		    while ((str = in.readLine()) != null) {

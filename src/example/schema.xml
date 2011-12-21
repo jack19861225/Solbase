@@ -271,7 +271,7 @@
  <uniqueKey>docId</uniqueKey>
 
  <!-- field for the QueryParser to use when an explicit fieldname is absent -->
- <defaultSearchField>contents</defaultSearchField>
+ <defaultSearchField>name</defaultSearchField>
 
  <!-- SolrQueryParser configuration: defaultOperator="AND|OR" -->
  <solrQueryParser defaultOperator="AND"/>
