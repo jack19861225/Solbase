@@ -10,14 +10,10 @@ import org.apache.hadoop.hbase.MasterNotRunningException;
 import org.apache.hadoop.hbase.ZooKeeperConnectionException;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.hadoop.hbase.client.Scan;
-import org.apache.hadoop.hbase.filter.CompareFilter;
-import org.apache.hadoop.hbase.filter.FilterList;
-import org.apache.hadoop.hbase.filter.SingleColumnValueFilter;
 import org.apache.hadoop.hbase.io.ImmutableBytesWritable;
 import org.apache.hadoop.hbase.mapreduce.MultiTableOutputFormat;
 import org.apache.hadoop.hbase.mapreduce.TableMapReduceUtil;
 import org.apache.hadoop.hbase.util.Base64;
-import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.io.MapWritable;
 import org.apache.hadoop.mapreduce.Job;
@@ -60,7 +56,7 @@ public class SolbaseIndexerTool implements Tool{
 			this.conf = new Configuration();
 		}
 		
-		String tableName = arg0[1];
+		String tableName = arg0[0];
 		
 		// for debugging, this will run local
 		// in 0.90, this only works for mapping phase, after that, it tries to copy blocks to reduce and never finishes that phase
@@ -111,32 +107,32 @@ public class SolbaseIndexerTool implements Tool{
 			if (!admin.isTableAvailable(SolbaseUtil.termVectorTable)) {				
 				SolbaseUtil.createTermVectorTable(null, null, null);
 			} else {
-				SolbaseUtil.truncateTable(admin, SolbaseUtil.termVectorTable);
+				//SolbaseUtil.truncateTable(admin, SolbaseUtil.termVectorTable);
 			}
 			if (!admin.isTableAvailable(SolbaseUtil.termVectorVersionIDTable)) {
 				SolbaseUtil.createTermVectorVersionIDTable();
 			} else {
-				SolbaseUtil.truncateTable(admin, SolbaseUtil.termVectorVersionIDTable);
+				//SolbaseUtil.truncateTable(admin, SolbaseUtil.termVectorVersionIDTable);
 			}
 			if (!admin.isTableAvailable(SolbaseUtil.docKeyIdMapTable)) {
 				SolbaseUtil.createDocKeyIdMapTable(null, null, null);
 			} else {
-				SolbaseUtil.truncateTable(admin, SolbaseUtil.docKeyIdMapTable);
+				//SolbaseUtil.truncateTable(admin, SolbaseUtil.docKeyIdMapTable);
 			}
 			if (!admin.isTableAvailable(SolbaseUtil.docTable)) {
 				SolbaseUtil.createDocTable(null, null, null);
 			} else {
-				SolbaseUtil.truncateTable(admin, SolbaseUtil.docTable);
+				//SolbaseUtil.truncateTable(admin, SolbaseUtil.docTable);
 			}
 			if (!admin.isTableAvailable(SolbaseUtil.sequenceTable)) {
 				SolbaseUtil.createSequenceTable();
 			} else {
-				SolbaseUtil.truncateTable(admin, SolbaseUtil.sequenceTable);
+				//SolbaseUtil.truncateTable(admin, SolbaseUtil.sequenceTable);
 			}
 			if (!admin.isTableAvailable(SolbaseUtil.uniqChecksumUserMediaTable)) {
 				SolbaseUtil.createUniqChecksumUserMediaTable(null, null, null);
 			} else {
-				SolbaseUtil.truncateTable(admin, SolbaseUtil.uniqChecksumUserMediaTable);
+				//SolbaseUtil.truncateTable(admin, SolbaseUtil.uniqChecksumUserMediaTable);
 			}
 		} catch (MasterNotRunningException e) {
 			e.printStackTrace();

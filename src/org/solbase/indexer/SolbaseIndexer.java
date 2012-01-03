@@ -27,7 +27,7 @@ public class SolbaseIndexer {
 			}
 		}
 		
-		if(args.length != 2){
+		if(args.length != 1){
 			System.out.println("Usage: hadoop jar solbase.jar org.solbase.indexer.SolbaseIndexer <table name>");
 			System.exit(-1);
 		}
