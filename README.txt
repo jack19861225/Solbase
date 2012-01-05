@@ -23,7 +23,7 @@ DEPENDENCIES:
 - Forked Version of Lucene & Solr
 
 By overcoming Lucene & Solr's limitations, Solbase had to forked off of Lucene and Solr repos for modifications and improvements in its cores.
-Solbase-Lucene & Solbase-Solr packages are included in this repository, but can be found at:
+Solbase-Lucene & Solbase-Solr packages are not included in this repository, but can be found at:
 
 https://github.com/Photobucket/Solbase-Solr
 https://github.com/Photobucket/Solbase-Lucene
