@@ -52,7 +52,6 @@ public class SolbaseIndexReducer extends TableReducer<BytesWritable, MapWritable
 						int docId = docBytes.getDocId();
 
 						Put mapping = new Put(Bytes.toBytes(globalId));
-						mapping.setWriteToWAL(false);
 						mapping.add(Bytes.toBytes("docId"), Bytes.toBytes(""), Bytes.toBytes(docId));
 						context.write(new ImmutableBytesWritable(SolbaseUtil.docKeyIdMapTable), mapping);
 						context.getCounter(Counters.TOTAL_DOC_KEY_ID_MAP).increment(1);
@@ -64,7 +63,6 @@ public class SolbaseIndexReducer extends TableReducer<BytesWritable, MapWritable
 						byte[] md5DocId = SolbaseUtil.randomize(docId);
 
 						Put documentPut = new Put(md5DocId);
-						documentPut.setWriteToWAL(false);
 
 						// Store each field as a column under this docId
 						for (int i = 0; i < fieldKeys.size(); i++) {
@@ -114,7 +112,6 @@ public class SolbaseIndexReducer extends TableReducer<BytesWritable, MapWritable
 						}
 						}
 
-						put.setWriteToWAL(false);
 						context.write(new ImmutableBytesWritable(SolbaseUtil.termVectorTable), put);
 						context.getCounter(Counters.TOTAL_TERM_VECTORS).increment(1);
 

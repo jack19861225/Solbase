@@ -83,7 +83,7 @@ public class SolbaseInitialIndexMapper extends TableMapper<BytesWritable, MapWri
 			docId = SolbaseUtil.generateUniqId();
 			this.idCounter = 0;
 		} else {
-			docId++;
+			docId--;
 		}
 		
 		// for us, docId is going to be global uniq id, meaning we are tied to 2 billion docs limitation
@@ -110,7 +110,6 @@ public class SolbaseInitialIndexMapper extends TableMapper<BytesWritable, MapWri
 			}
 			context.write(new BytesWritable(checksum), mapWritable);
 		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		

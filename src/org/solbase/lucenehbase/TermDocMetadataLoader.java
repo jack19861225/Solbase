@@ -134,7 +134,6 @@ public class TermDocMetadataLoader implements CachedObjectLoader<Term, Compacted
 
 			if (result.isEmpty()) {
 				Put updatePut = new Put(Bytes.add(fieldTermKey, Bytes.toBytes(startDocId), Bytes.toBytes(endDocId)));
-				updatePut.setWriteToWAL(false);
 				long currentTime = System.currentTimeMillis();
 				updatePut.add(SolbaseUtil.timestampColumnFamilyName, Bytes.toBytes(""), Bytes.toBytes(currentTime));
 				termVectorVersionIDTable.put(updatePut);
@@ -304,7 +303,7 @@ public class TermDocMetadataLoader implements CachedObjectLoader<Term, Compacted
 			writer.updateTermVector(modificationData, startDocId, endDocId);
 			writer.updateTermVectorVersionId(modificationData, startDocId, endDocId);
 		} else if(modType == LayeredCache.ModificationType.ADD){
-			writer.addTermVector(modificationData, startDocId, endDocId);
+			writer.addTermVector(modificationData);
 			writer.updateTermVectorVersionId(modificationData, startDocId, endDocId);
 		}
 		

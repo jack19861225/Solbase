@@ -230,6 +230,7 @@ public class SolbaseIndexWriter extends UpdateHandler {
 					// doc never gets updated in hbase, nor cache
 					// for loop below will update tv with this new doc.
 					// when searched, it will throw null point exception on this doc
+					// therefore, update store first if adding doc (replication can still cause this issue if back'd up)
 					ReaderCache.updateDocument(docNumber, parsedDoc, indexName, writer, LayeredCache.ModificationType.ADD, updateStore, startDocId, endDocId);
 
 					for (TermDocMetadata termDocMeta : termDocMetas) {
@@ -370,10 +371,9 @@ public class SolbaseIndexWriter extends UpdateHandler {
 				Put documentPut = new Put(SolbaseUtil.randomize(docId));
 				Put mappingPut = new Put(Bytes.toBytes(globalUniqId));
 				
-				documentPut.add(SolbaseUtil.timestampColumnFamilyName, SolbaseUtil.tombstonedColumnFamilyQualifierBytes, Bytes.toBytes(1));
 				mappingPut.add(SolbaseUtil.docIdColumnFamilyName, SolbaseUtil.tombstonedColumnFamilyQualifierBytes, Bytes.toBytes(1));
 				
-				writer.updateDocument(documentPut, doc);
+				writer.deleteDocument(documentPut);
 				writer.updateDocKeyIdMap(mappingPut);
 			}
 		} catch (InterruptedException e) {

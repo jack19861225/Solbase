@@ -104,6 +104,8 @@ public class IndexWriter {
 			mapping.add(SolbaseUtil.docIdColumnFamilyName, SolbaseUtil.tombstonedColumnFamilyQualifierBytes, Bytes.toBytes(0));
 			updateDocKeyIdMap(mapping);
 
+			logger.info("adding document: " + Bytes.toInt(SolbaseUtil.randomize(docId)) + " uniqId: " + uniqId);
+			
 		} else {
 			if(uniqId == null){
 				logger.info("uniqId is null: " + doc.toString());	
@@ -136,15 +138,11 @@ public class IndexWriter {
 	}
 	
 	public void deleteDocument(Put documentPut){
-		// for remote server update via solr update, we want to use
-		// getDocTable(), but for now map/red can use local htable
 		HTableInterface docTable = SolbaseUtil.getDocTable();
-		// insert document to doctable
 		try {
-			Delete delete = new Delete(documentPut.getRow());
-			docTable.delete(delete);
+			documentPut.add(SolbaseUtil.timestampColumnFamilyName, SolbaseUtil.tombstonedColumnFamilyQualifierBytes, Bytes.toBytes(1));
+			docTable.put(documentPut);
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} finally {		
 			SolbaseUtil.releaseTable(docTable);
@@ -182,6 +180,18 @@ public class IndexWriter {
 		}		
 	}
 
+	public void updateTermVector(TermDocMetadata termDocMeta) throws CorruptIndexException, IOException {
+		this.addTermVector(termDocMeta, 0, 0);
+		int docNumber = termDocMeta.getDocId();
+		logger.info("updating term vector: " + termDocMeta.getTerm().toString() + " docId: " + docNumber);
+	}
+	
+	public void addTermVector(TermDocMetadata termDocMeta) throws CorruptIndexException, IOException {
+		this.addTermVector(termDocMeta, 0, 0);
+		int docNumber = termDocMeta.getDocId();
+		logger.info("adding term vector: " + termDocMeta.getTerm().toString() + " docId: " + docNumber);
+	}
+	
 	public void addTermVector(TermDocMetadata termDocMeta, int startDocId, int endDocId) throws CorruptIndexException, IOException {
 		// getting terVector and doc tables
 		HTableInterface termVectorTable = SolbaseUtil.getTermVectorTable();
@@ -212,10 +222,9 @@ public class IndexWriter {
 			}
 			}
 			
-			logger.info(Bytes.toString(Bytes.add(Bytes.add(key, SolbaseUtil.delimiter, Bytes.toBytes(docNumber)), Bytes.toBytes(buf))));
-			logger.info("updating this term: " + termDocMeta.getTerm().toString() + " and docId: " + termDocMeta.docId);
-
 			termVectorTable.put(put);
+		} catch (Exception e){
+			logger.error("failed to add term vector: " + termDocMeta.getTerm().toString() + " and docId: " + termDocMeta.docId);
 		} finally {
 			SolbaseUtil.releaseTable(termVectorTable);
 		}
@@ -227,7 +236,7 @@ public class IndexWriter {
 
 		try {
 			deleteTermVector(termDocMeta, startDocId, endDocId);
-			addTermVector(termDocMeta, startDocId, endDocId);
+			updateTermVector(termDocMeta);
 		} catch (CorruptIndexException e) {
 			e.printStackTrace();
 		} catch (IOException e) {
@@ -243,7 +252,6 @@ public class IndexWriter {
 		byte[] fieldTermKey = SolbaseUtil.generateTermKey(term);
 		
 		Put updatePut = new Put(Bytes.add(fieldTermKey, Bytes.toBytes(startDocId), Bytes.toBytes(endDocId)));
-		updatePut.setWriteToWAL(false);
 		if(termDocMeta.versionIdentifier == null){
 			// we havn't loaded this term into cache yet, but need to do update with
 			try {
@@ -308,7 +316,14 @@ public class IndexWriter {
 				fieldScanner.close();
 				
 				if(termDoc != null){
-					delete = new Delete(termDoc.getRow());
+					byte[] oldRow = termDoc.getRow();
+					ByteBuffer buf = termDocMeta.serialize();
+					byte[] newRow = Bytes.add(Bytes.add(key, SolbaseUtil.delimiter, Bytes.toBytes(docNumber)), Bytes.toBytes(buf));
+					
+					// if term vector hasn't changed, don't bother deleting
+					if(!ArrayUtils.isEquals(oldRow, newRow)) {
+						delete = new Delete(termDoc.getRow());
+					}
 				}
 			}
 				break;
@@ -324,6 +339,7 @@ public class IndexWriter {
 			
 			if(delete != null){
 				termVectorTable.delete(delete);
+				logger.info("deleting term vector: " + termDocMeta.getTerm().toString() + " docId: " + docNumber);
 			}
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
