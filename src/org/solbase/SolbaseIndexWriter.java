@@ -36,19 +36,14 @@ import javax.naming.OperationNotSupportedException;
 
 import net.rubyeye.xmemcached.exception.MemcachedException;
 
-import org.apache.hadoop.hbase.HBaseConfiguration;
-import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.HTableInterface;
-import org.apache.hadoop.hbase.client.HTablePool;
 import org.apache.hadoop.hbase.client.Put;
-import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 import org.apache.lucene.document.Document;
 import org.apache.solr.client.solrj.SolrServerException;
 import org.apache.solr.client.solrj.impl.CommonsHttpSolrServer;
 import org.apache.solr.common.SolrException;
-import org.apache.solr.common.SolrInputDocument;
 import org.apache.solr.common.util.NamedList;
 import org.apache.solr.common.util.SimpleOrderedMap;
 import org.apache.solr.core.SolrCore;
@@ -61,6 +56,7 @@ import org.apache.solr.update.RollbackUpdateCommand;
 import org.apache.solr.update.UpdateHandler;
 import org.solbase.cache.CachedObjectWrapper;
 import org.solbase.cache.LayeredCache;
+import org.solbase.common.SolbaseException;
 import org.solbase.indexer.ParsedDoc;
 import org.solbase.indexer.SolbaseIndexUtil;
 import org.solbase.lucenehbase.ReaderCache;
@@ -102,13 +98,10 @@ public class SolbaseIndexWriter extends UpdateHandler {
 				try {
 					indexUtil = (SolbaseIndexUtil) Class.forName(className).newInstance();
 				} catch (InstantiationException e) {
-					// TODO Auto-generated catch block
 					e.printStackTrace();
 				} catch (IllegalAccessException e) {
-					// TODO Auto-generated catch block
 					e.printStackTrace();
 				} catch (ClassNotFoundException e) {
-					// TODO Auto-generated catch block
 					e.printStackTrace();
 				}
 			}
@@ -252,6 +245,9 @@ public class SolbaseIndexWriter extends UpdateHandler {
 				} catch (TimeoutException e) {
 					logger.info("adding doc failed: " + docNumber);
 					logger.info(e.toString());
+				} catch (SolbaseException e) {
+					logger.info("adding doc failed: " + docNumber);
+					logger.info(e.toString());
 				}
 			}
 		} finally {
@@ -295,32 +291,31 @@ public class SolbaseIndexWriter extends UpdateHandler {
 				
 			return true;
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			logger.info("edit doc failed: " + docNumber);
+			logger.info(e.toString());
 		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			logger.info("edit doc failed: " + docNumber);
+			logger.info(e.toString());
 		} catch (MemcachedException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			logger.info("edit doc failed: " + docNumber);
+			logger.info(e.toString());
 		} catch (TimeoutException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			logger.info("edit doc failed: " + docNumber);
+			logger.info(e.toString());
+		} catch (SolbaseException e) {
+			logger.info("edit doc failed: " + docNumber);
+			logger.info(e.toString());
 		}
 		
 		return false;
-		
-		
-		// need to compare old and new doc here
 	}
 	
 	public void close() throws IOException {
-		// hehe
+		// no-op
 	}
 
-	// TODO: flush all sub-index caches?
 	public void commit(CommitUpdateCommand cmd) throws IOException {
-
+		// no-op
 	}
 
 	public void delete(DeleteUpdateCommand cmd) throws IOException {
@@ -363,28 +358,19 @@ public class SolbaseIndexWriter extends UpdateHandler {
 			int endDocId = SolbaseShardUtil.getEndDocId(shardNum);
 			
 			ReaderCache.updateDocument(docId, parsedDoc, indexName, writer, LayeredCache.ModificationType.DELETE, updateStore, startDocId, endDocId);
-			
-			// let's clean up Docs and DocKeyIdMap tables after deleting doc from term vector
-			if(wrapper != null && updateStore){
-				Document doc = wrapper.getValue();
-				String globalUniqId = doc.get("global_uniq_id");
-				Put documentPut = new Put(SolbaseUtil.randomize(docId));
-				Put mappingPut = new Put(Bytes.toBytes(globalUniqId));
-				
-				mappingPut.add(SolbaseUtil.docIdColumnFamilyName, SolbaseUtil.tombstonedColumnFamilyQualifierBytes, Bytes.toBytes(1));
-				
-				writer.deleteDocument(documentPut);
-				writer.updateDocKeyIdMap(mappingPut);
-			}
+		
 		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			logger.info("delete doc failed: " + docId);
+			logger.info(e.toString());
 		} catch (MemcachedException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			logger.info("delete doc failed: " + docId);
+			logger.info(e.toString());
 		} catch (TimeoutException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			logger.info("delete doc failed: " + docId);
+			logger.info(e.toString());
+		} catch (SolbaseException e) {
+			logger.info("delete doc failed: " + docId);
+			logger.info(e.toString());
 		}
 	}
 
@@ -392,7 +378,6 @@ public class SolbaseIndexWriter extends UpdateHandler {
 		try {
 			throw new OperationNotSupportedException();
 		} catch (OperationNotSupportedException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 	}
@@ -402,8 +387,7 @@ public class SolbaseIndexWriter extends UpdateHandler {
 	}
 
 	public void rollback(RollbackUpdateCommand cmd) throws IOException {
-		// TODO Auto-generated method stub
-
+		// TODO - implement rollback in case of failure
 	}
 
 	public Category getCategory() {
@@ -415,7 +399,6 @@ public class SolbaseIndexWriter extends UpdateHandler {
 	}
 
 	public URL[] getDocs() {
-		// TODO Auto-generated method stub
 		return null;
 	}
 
@@ -424,12 +407,10 @@ public class SolbaseIndexWriter extends UpdateHandler {
 	}
 
 	public String getSource() {
-		// TODO Auto-generated method stub
 		return null;
 	}
 
 	public String getSourceId() {
-		// TODO Auto-generated method stub
 		return null;
 	}
 
@@ -461,6 +442,7 @@ public class SolbaseIndexWriter extends UpdateHandler {
 	public static void main(String[] args){
 		try {
 			@SuppressWarnings("deprecation")
+			/*
 			HBaseConfiguration conf = new HBaseConfiguration();
 			//conf.set("hbase.zookeeper.quorum", "den2zksb001");
 			conf.set("hbase.zookeeper.quorum", "den3dhdptk01.int.photobucket.com");
@@ -490,10 +472,11 @@ public class SolbaseIndexWriter extends UpdateHandler {
 				docNumber = Bytes.toInt(docId);
 				doc.addField("edit", true);
 			}
-			
+			*/
 			// using seperate connector to leverage different http thread pool for updates
-			CommonsHttpSolrServer solbaseServer = new CommonsHttpSolrServer("http://localhost:8080/solbase/pbimages~1");
+			CommonsHttpSolrServer solbaseServer = new CommonsHttpSolrServer("http://den2sch21:8080/solbase/pbimages~4");
 
+			/*
 			doc.addField("docId", docNumber);
 			doc.addField("global_uniq_id", globalId);
 			doc.addField("title", "tom");
@@ -515,10 +498,13 @@ public class SolbaseIndexWriter extends UpdateHandler {
 			
 			solbaseServer.add(doc);
 
+	*/
 			// for delete only
-			//List<String> ids = new ArrayList<String>();
-			//ids.add(docNumber + "");			
-			//solbaseServer.deleteById(ids, true);
+			
+			List<String> ids = new ArrayList<String>();
+			ids.add(127995479 + ""); // term vector didn't get deleted doc id
+			ids.add(134876977 + ""); // term vector did get deleted doc id
+			solbaseServer.deleteById(ids, true);
 		} catch (MalformedURLException e) {
 
 		} catch (SolrServerException e) {

@@ -50,6 +50,7 @@ import org.apache.lucene.index.Term;
 import org.apache.lucene.search.Scorer;
 import org.apache.lucene.search.Similarity;
 import org.solbase.SolbaseUtil;
+import org.solbase.common.SolbaseException;
 import org.solbase.indexer.ParsedDoc;
 import org.solbase.indexer.SolbaseIndexUtil;
 
@@ -92,8 +93,7 @@ public class IndexWriter {
 				documentPut.add(SolbaseUtil.timestampColumnFamilyName, SolbaseUtil.tombstonedColumnFamilyQualifierBytes, Bytes.toBytes(0));
 				docTable.put(documentPut);
 			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+				throw new SolbaseException(SolbaseException.ErrorCode.SERVER_ERROR, e.getMessage());
 			} finally {		
 				SolbaseUtil.releaseTable(docTable);
 			}
@@ -130,8 +130,7 @@ public class IndexWriter {
 			documentPut.add(SolbaseUtil.timestampColumnFamilyName, SolbaseUtil.tombstonedColumnFamilyQualifierBytes, Bytes.toBytes(0));
 			docTable.put(documentPut);
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			throw new SolbaseException(SolbaseException.ErrorCode.SERVER_ERROR, e.getMessage());
 		} finally {		
 			SolbaseUtil.releaseTable(docTable);
 		}
@@ -157,8 +156,7 @@ public class IndexWriter {
 		try {
 			docKeyIdMap.put(docKeyIdPut);
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			throw new SolbaseException(SolbaseException.ErrorCode.SERVER_ERROR, e.getMessage());
 		} finally {		
 			SolbaseUtil.releaseTable(docKeyIdMap);
 		}
@@ -173,8 +171,7 @@ public class IndexWriter {
 			Delete delete = new Delete(mappingPut.getRow());
 			mappingTable.delete(delete);
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			throw new SolbaseException(SolbaseException.ErrorCode.SERVER_ERROR, e.getMessage());
 		} finally {		
 			SolbaseUtil.releaseTable(mappingTable);
 		}		
@@ -235,8 +232,11 @@ public class IndexWriter {
 		// getting terVector and doc tables
 
 		try {
-			deleteTermVector(termDocMeta, startDocId, endDocId);
-			updateTermVector(termDocMeta);
+			// TODO: what do we do with doc update? just update anyway?
+			boolean deleted = deleteTermVector(termDocMeta, startDocId, endDocId, true);
+			if(deleted) {
+				updateTermVector(termDocMeta);
+			}
 		} catch (CorruptIndexException e) {
 			e.printStackTrace();
 		} catch (IOException e) {
@@ -287,8 +287,25 @@ public class IndexWriter {
 			SolbaseUtil.releaseTable(versionIdTable);
 		}
 	}
+
+	/**
+	 * by default it's not going to compare current term vector with what's in tv table
+	 * 
+	 * @return boolean - indicating whether term vector's been deleted
+	 */
+	public boolean deleteTermVector(TermDocMetadata termDocMeta, int startDocId, int endDocId) {
+		return this.deleteTermVector(termDocMeta, startDocId, endDocId, false);
+	}
 	
-	public void deleteTermVector(TermDocMetadata termDocMeta, int startDocId, int endDocId){
+	/**
+	 *
+	 * @param termDocMeta - term vector to be deleted
+	 * @param startDocId
+	 * @param endDocId
+	 * @param compare - if true, it will compare new and old term vectors and if same, don't bother deleting term vector
+	 * @return boolean - indicating whether term vector's been deleted
+	 */
+	public boolean deleteTermVector(TermDocMetadata termDocMeta, int startDocId, int endDocId, boolean compare){
 		// to update, we should first delete existing term doc meta data.
 		// getting terVector and doc tables
 		HTableInterface termVectorTable = SolbaseUtil.getTermVectorTable();
@@ -315,13 +332,17 @@ public class IndexWriter {
 				termDoc = fieldScanner.next();
 				fieldScanner.close();
 				
-				if(termDoc != null){
-					byte[] oldRow = termDoc.getRow();
-					ByteBuffer buf = termDocMeta.serialize();
-					byte[] newRow = Bytes.add(Bytes.add(key, SolbaseUtil.delimiter, Bytes.toBytes(docNumber)), Bytes.toBytes(buf));
-					
-					// if term vector hasn't changed, don't bother deleting
-					if(!ArrayUtils.isEquals(oldRow, newRow)) {
+				if(termDoc != null && !termDoc.isEmpty()){
+					if(compare) {
+						byte[] oldRow = termDoc.getRow();
+						ByteBuffer buf = termDocMeta.serialize();
+						byte[] newRow = Bytes.add(Bytes.add(key, SolbaseUtil.delimiter, Bytes.toBytes(docNumber)), Bytes.toBytes(buf));
+
+						// if term vector hasn't changed, don't bother deleting
+						if (!ArrayUtils.isEquals(oldRow, newRow)) {
+							delete = new Delete(termDoc.getRow());
+						}
+					} else {
 						delete = new Delete(termDoc.getRow());
 					}
 				}
@@ -340,16 +361,17 @@ public class IndexWriter {
 			if(delete != null){
 				termVectorTable.delete(delete);
 				logger.info("deleting term vector: " + termDocMeta.getTerm().toString() + " docId: " + docNumber);
+				return true;
 			}
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			throw new SolbaseException(SolbaseException.ErrorCode.SERVER_ERROR, e.getMessage());
 		} finally {
 			if(fieldScanner != null){
 				fieldScanner.close();
 			}
 			SolbaseUtil.releaseTable(termVectorTable);
 		}
+		return false;
 	}
 	
 	@SuppressWarnings("unchecked")

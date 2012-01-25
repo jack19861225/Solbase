@@ -252,10 +252,19 @@ public class DocumentLoader implements CachedObjectLoader<Integer, Document, Lon
 			CachedObjectWrapper<Document, Long>  cachedObj = loadObject(key, 0, 0, cache);
 			if(cachedObj != null){
 				Document oldDoc = cachedObj.getValue();
-				modificationData.copyFrom(deleteDocument(oldDoc, Integer.parseInt(oldDoc.getField("docId").stringValue()), modificationData.getIndexName(), modificationData.getIndexWriter(), 
+				int docId = Integer.parseInt(oldDoc.getField("docId").stringValue());
+				modificationData.copyFrom(deleteDocument(oldDoc, docId, modificationData.getIndexName(), modificationData.getIndexWriter(), 
 											modificationData.getIndexUtil(), modificationData.getUpdateStore(), startDocId, endDocId));
-				documentPut = modificationData.getDocumentPut();
-				// TODO: should probably delete Docs and DocKeyIdMap entry here?
+				
+				// let's clean up Docs and DocKeyIdMap tables after deleting doc from term vector
+				// we are tombstoning doc and dockeyidmap rows because of race condition in mutli clustered environment
+				String globalUniqId = oldDoc.get("global_uniq_id");
+				Put mappingPut = new Put(Bytes.toBytes(globalUniqId));
+
+				mappingPut.add(SolbaseUtil.docIdColumnFamilyName, SolbaseUtil.tombstonedColumnFamilyQualifierBytes, Bytes.toBytes(1));
+
+				writer.deleteDocument(documentPut);
+				writer.updateDocKeyIdMap(mappingPut);
 			}
 		} else if(modType == LayeredCache.ModificationType.UPDATE){
 			// TODO: might want to refactor this logic
@@ -276,6 +285,7 @@ public class DocumentLoader implements CachedObjectLoader<Integer, Document, Lon
 
 			List<TermDocMetadata> metadatas = parsedDoc.getTermDocMetadatas();
 
+			// TODO: doing duplicate work here - once from updateObject and again from updateObjectStore
 			for (TermDocMetadata metadata : metadatas) {
 				ReaderCache.updateTermDocsMetadata(metadata.getTerm(), metadata, indexName, writer, LayeredCache.ModificationType.DELETE, updateStore, startDocId, endDocId);
 			}
