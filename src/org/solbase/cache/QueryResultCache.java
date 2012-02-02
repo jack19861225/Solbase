@@ -18,7 +18,6 @@ import org.apache.solr.search.LRUCache;
 import org.apache.solr.search.SolrCacheWithReader;
 import org.solbase.lucenehbase.CompactedTermDocMetadataArray;
 import org.solbase.lucenehbase.ReaderCache;
-import org.solbase.lucenehbase.TermDocMetadataLoader;
 import org.solbase.lucenehbase.TermDocMetadataVersionIdentifier;
 
 public class QueryResultCache extends LRUCache implements SolrCacheWithReader, QueryResultCacheMBean{
@@ -26,7 +25,12 @@ public class QueryResultCache extends LRUCache implements SolrCacheWithReader, Q
 	private String indexName;
 	private int startDocId;
 	private int endDocId;
-
+	// 2 hours query result cache expiration; 
+	// TODO: making it 2 hours since we have cross shard version update issue
+	// if one of shard updates version identifier, replication only picks up version changes, but not actual term vector changes,
+	// it will cache stale version of term vector and never expire query result cache
+	public static final long QUERY_RESULT_CACHE_TIMEOUT = 1000 * 60 * 120; 
+	
 	private final static Logger logger = Logger.getLogger(QueryResultCache.class);
 	
 	public QueryResultCache(){
@@ -75,8 +79,17 @@ public class QueryResultCache extends LRUCache implements SolrCacheWithReader, Q
 		
 		DocListCachedWrapper dlcw = (DocListCachedWrapper)this.get(key);
 		if (dlcw == null) {
+			// we don't have query result cache given query
 			return null;
 		}
+		
+		long dlcwTs = dlcw.getTimestamp();
+		long currentTs = System.currentTimeMillis();
+		if((currentTs - dlcwTs) > QUERY_RESULT_CACHE_TIMEOUT) {
+			// we are blindly expiring query result cache if time has passed
+			return null;
+		}
+		
 		for (Term term : (Set<Term>) terms) {
 			CachedObjectWrapper<CompactedTermDocMetadataArray, TermDocMetadataVersionIdentifier> cow;
 			try {

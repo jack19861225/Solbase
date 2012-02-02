@@ -17,10 +17,11 @@ public class DocListCachedWrapper {
 	
 	private DocList docList;
 	private HashMap<Term, Long> termMap = new HashMap<Term, Long>();
-	
+	private long timestamp;
 	
 	public DocListCachedWrapper(DocList docList, Set<Term> terms, String indexName, int startDocId, int endDocId) throws IOException, InterruptedException, MemcachedException, TimeoutException {
 		this.docList = docList;
+		this.timestamp = System.currentTimeMillis();
 		for (Term term : terms) {
 			CachedObjectWrapper<CompactedTermDocMetadataArray, TermDocMetadataVersionIdentifier> cow = ReaderCache.getTermDocsMetadata(term, indexName, startDocId, endDocId);
 			termMap.put(term, cow == null ? 0 :cow.getVersionIdentifier().getVersionIdentifier());
@@ -36,4 +37,7 @@ public class DocListCachedWrapper {
 		return termMap.get(term);
 	}
 
+	public long getTimestamp() {
+		return timestamp;
+	}
 }
