@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<!DOCTYPE config>
+<!DOCTYPE config [<!ENTITY query SYSTEM "/home/ldap/misc/search/uniq_terms.xml">]>
 <!--
  Licensed to the Apache Software Foundation (ASF) under one or more
  contributor license agreements.  See the NOTICE file distributed with
@@ -45,6 +45,7 @@
               <lib dir="./lib" />
     -->
 
+  <!--These are specific to Lucandra example -->
   <lib dir="../../" />
   <lib dir="../../lib" />
   <lib dir="../../config" />
@@ -139,7 +140,7 @@
     <!-- a firstSearcher event is fired whenever a new searcher is being
          prepared but there is no current registered searcher to handle
          requests or to gain autowarming data from. -->
-
+&query;
     <!-- If a search request comes in and there is no current registered searcher,
          then immediately register the still warming searcher and use it.  If
          "false" then all requests will block until the first searcher is done
@@ -662,9 +663,6 @@
        in Solr's conf/xslt directory.  Changes to xslt files are checked for
        every xsltCacheLifetimeSeconds.
    -->
-   
-   <queryResponseWriter name="pbxml" class="com.pb.solbase.response.PBXMLResponseWriter" default="true"/>
-   <requestHandler name="pb" class="com.pb.solbase.handler.PhotobucketSearchHandler" />
    
   <queryResponseWriter name="xslt" class="org.apache.solr.request.XSLTResponseWriter">
     <int name="xsltCacheLifetimeSeconds">5</int>
