@@ -7,7 +7,7 @@ under NFS to big database implementation in HBase.
 Leveraging HBase's high performance scan, inverted index is efficiently stored in HBase for
 fast data retrieval.
 
-<a href="http://www.slideshare.net/KyungseogOh/solbase">Solbase Presentation</a>
+http://www.slideshare.net/KyungseogOh/solbase
 
 MAIN HIGHLIGHTS OF SOLBASE
 
